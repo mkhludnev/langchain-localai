@@ -37,7 +37,6 @@ markers = [
     "requires: mark tests as requiring a specific library",
     "compile: mark placeholder test used to compile integration tests without running them",
 ]
-#     "vcr: vcr cassete" <- wrong
 asyncio_mode = "auto"
 
 [tool.poetry.group.test]
