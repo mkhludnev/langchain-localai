@@ -90,11 +90,16 @@ def _async_retry_decorator(embeddings: LocalAIEmbeddings) -> Any:
 
 # https://stackoverflow.com/questions/76469415/getting-embeddings-of-length-1-from-langchain-openaiembeddings
 def _check_response(response: Any) -> Any:
-    if any(len(d.embedding) == 1 for d in response.data):
+    singleton_embedding = next(
+        filter(lambda d: len(d.embedding) == 1, response.data), None
+    )
+    if singleton_embedding:
         import openai
 
-        raise openai.APIError(
-            "LocalAI API returned an empty embedding", None, body=None
+        raise openai.APIResponseValidationError(
+            response=response,
+            body=singleton_embedding,
+            message="LocalAI API returned an empty embedding",
         )
     return response
 
@@ -247,7 +252,7 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
                 "max_retries": values["max_retries"],
             }
             if not values.get("client"):
-                sync_specific = {}
+                sync_specific = dict(**client_params)
                 if values.get("openai_proxy"):
                     try:
                         import httpx
@@ -259,11 +264,9 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
                     sync_specific["http_client"] = httpx.Client(
                         proxy=values.get("openai_proxy")
                     )
-                values["client"] = openai.OpenAI(
-                    **client_params, **sync_specific
-                ).embeddings
+                values["client"] = openai.OpenAI(**sync_specific).embeddings
             if not values.get("async_client"):
-                async_specific = {}
+                async_specific = dict(**client_params)
                 if values.get("openai_proxy"):
                     try:
                         import httpx
@@ -275,9 +278,7 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
                     async_specific["http_client"] = httpx.AsyncClient(
                         proxy=values.get("openai_proxy")
                     )
-                values["async_client"] = openai.AsyncOpenAI(
-                    **client_params, **async_specific
-                ).embeddings
+                values["async_client"] = openai.AsyncOpenAI(**async_specific).embeddings
         except ImportError:
             raise ImportError(
                 "Could not import openai python package. "
