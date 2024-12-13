@@ -159,6 +159,7 @@ jobs:
 
       - name: Run integration tests
         env:
+          foo: bar
         run: make integration_tests
         working-directory: ${{ inputs.working-directory }}
 
