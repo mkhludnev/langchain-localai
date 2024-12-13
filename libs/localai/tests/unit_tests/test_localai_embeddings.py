@@ -1,6 +1,6 @@
 import pytest
 
-from langchain_localai import LocalAIEmbeddings
+from libs.localai.langchain_localai import LocalAIEmbeddings
 
 @pytest.mark.requires("openai")
 def test_localai_invalid_model_kwargs() -> None:

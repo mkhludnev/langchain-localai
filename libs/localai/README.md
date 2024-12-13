@@ -13,10 +13,10 @@ pip install -U langchain-localai
 `LocalAIEmbeddings` class exposes embeddings from LocalAI.
 
 ```python
-from langchain_localai import LocalAIEmbeddings
+from libs.localai.langchain_localai import LocalAIEmbeddings
 
 embeddings = LocalAIEmbeddings(
-    openai_api_base="http://localhost:8080", 
+    openai_api_base="http://localhost:8080",
     model="embedding-model-name")
 embeddings.embed_query("What is the meaning of life?")
 ```
