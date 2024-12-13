@@ -1,6 +1,6 @@
 import pytest
-
 from libs.localai.langchain_localai import LocalAIEmbeddings
+
 
 @pytest.mark.requires("openai")
 @pytest.mark.vcr

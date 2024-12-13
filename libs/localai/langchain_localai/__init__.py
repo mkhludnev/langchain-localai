@@ -1,6 +1,6 @@
-from .localai_embeddings import LocalAIEmbeddings
 from importlib import metadata
 
+from .localai_embeddings import LocalAIEmbeddings
 
 try:
     __version__ = metadata.version(__package__)
