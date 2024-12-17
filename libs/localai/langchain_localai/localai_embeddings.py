@@ -4,7 +4,6 @@ import logging
 import warnings
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Literal,
@@ -22,109 +21,8 @@ from langchain_core.utils import (
     pre_init,
 )
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from tenacity import (
-    AsyncRetrying,
-    before_sleep_log,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 logger = logging.getLogger(__name__)
-
-
-def _create_retry_decorator(embeddings: LocalAIEmbeddings) -> Callable[[Any], Any]:
-    import openai
-
-    min_seconds = 4
-    max_seconds = 10
-    # Wait 2^x * 1 second between each retry starting with
-    # 4 seconds, then up to 10 seconds, then 10 seconds afterwards
-    return retry(
-        reraise=True,
-        stop=stop_after_attempt(embeddings.max_retries),
-        wait=wait_exponential(multiplier=1, min=min_seconds, max=max_seconds),
-        retry=(
-            retry_if_exception_type(openai.APITimeoutError)
-            | retry_if_exception_type(openai.APIError)
-            | retry_if_exception_type(openai.APIConnectionError)
-            | retry_if_exception_type(openai.RateLimitError)
-            | retry_if_exception_type(openai.InternalServerError)
-        ),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-    )
-
-
-def _async_retry_decorator(embeddings: LocalAIEmbeddings) -> Any:
-    import openai
-
-    min_seconds = 4
-    max_seconds = 10
-    # Wait 2^x * 1 second between each retry starting with
-    # 4 seconds, then up to 10 seconds, then 10 seconds afterwards
-    async_retrying = AsyncRetrying(
-        reraise=True,
-        stop=stop_after_attempt(embeddings.max_retries),
-        wait=wait_exponential(multiplier=1, min=min_seconds, max=max_seconds),
-        retry=(
-            retry_if_exception_type(openai.APITimeoutError)
-            | retry_if_exception_type(openai.APIError)
-            | retry_if_exception_type(openai.APIConnectionError)
-            | retry_if_exception_type(openai.RateLimitError)
-            | retry_if_exception_type(openai.InternalServerError)
-        ),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-    )
-
-    def wrap(func: Callable) -> Callable:
-        async def wrapped_f(*args: Any, **kwargs: Any) -> Callable:
-            async for _ in async_retrying:
-                return await func(*args, **kwargs)
-            raise AssertionError("this is unreachable")
-
-        return wrapped_f
-
-    return wrap
-
-
-# https://stackoverflow.com/questions/76469415/getting-embeddings-of-length-1-from-langchain-openaiembeddings
-def _check_response(response: Any) -> Any:
-    singleton_embedding = next(
-        filter(lambda d: len(d.embedding) == 1, response.data), None
-    )
-    if singleton_embedding:
-        import openai
-
-        raise openai.APIResponseValidationError(
-            response=response,
-            body=singleton_embedding,
-            message="LocalAI API returned an empty embedding",
-        )
-    return response
-
-
-def embed_with_retry(embeddings: LocalAIEmbeddings, **kwargs: Any) -> Any:
-    """Use tenacity to retry the embedding call."""
-    retry_decorator = _create_retry_decorator(embeddings)
-
-    @retry_decorator
-    def _embed_with_retry(**kwargs: Any) -> Any:
-        response = embeddings.client.create(**kwargs)
-        return _check_response(response)
-
-    return _embed_with_retry(**kwargs)
-
-
-async def async_embed_with_retry(embeddings: LocalAIEmbeddings, **kwargs: Any) -> Any:
-    """Use tenacity to retry the embedding call."""
-
-    @_async_retry_decorator(embeddings)
-    async def _async_embed_with_retry(**kwargs: Any) -> Any:
-        response = await embeddings.async_client.create(**kwargs)
-        return _check_response(response)
-
-    return await _async_embed_with_retry(**kwargs)
 
 
 class LocalAIEmbeddings(BaseModel, Embeddings):
@@ -140,8 +38,8 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
     Example:
         .. code-block:: python
 
-            from langchain_community.embeddings import LocalAIEmbeddings
-            openai = LocalAIEmbeddings(
+            from langchain_localai import LocalAIEmbeddings
+            localai = LocalAIEmbeddings(
                 openai_api_key="random-string",
                 openai_api_base="http://localhost:8080"
             )
@@ -298,41 +196,23 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
         self, text: str | list[str], *, engine: str
     ) -> List[List[float]]:
         """Call out to LocalAI's embedding endpoint."""
-        # handle large input text
-        if self.model.endswith("001"):
-            # See: https://github.com/openai/openai-python/issues/418#issuecomment-1525939500
-            # replace newlines, which can negatively affect performance.
-            if isinstance(text, str):
-                text = text.replace("\n", " ")
-            else:
-                text = [t.replace("\n", " ") for t in text]
-        listofembdes = embed_with_retry(
-            self,
+        list_of_embdes = self.client.create(
             input=[text] if isinstance(text, str) else text,
             **self._invocation_params,
         ).data
-        return [d.embedding for d in listofembdes]
+        return [d.embedding for d in list_of_embdes]
 
     async def _aembedding_func(
         self, text: str | List[str], *, engine: str
     ) -> List[List[float]]:
         """Call out to LocalAI's embedding endpoint."""
-        # handle large input text
-        if self.model.endswith("001"):
-            # See: https://github.com/openai/openai-python/issues/418#issuecomment-1525939500
-            # replace newlines, which can negatively affect performance.
-            if isinstance(text, str):
-                text = text.replace("\n", " ")
-            else:
-                text = [t.replace("\n", " ") for t in text]
-        listofembdes = (
-            await async_embed_with_retry(
-                self,
+        list_of_embdes = (
+            await self.async_client.create(
                 input=[text] if isinstance(text, str) else text,
                 **self._invocation_params,
             )
         ).data
-        return [d.embedding for d in listofembdes]
+        return [d.embedding for d in list_of_embdes]
 
     def embed_documents(
         self, texts: List[str], chunk_size: Optional[int] = 0
