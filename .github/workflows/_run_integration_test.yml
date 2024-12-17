@@ -1,4 +1,4 @@
-name: compile-integration-test
+name: run-integration-test
 
 on:
   workflow_call:
@@ -22,7 +22,7 @@ jobs:
         python-version:
           - "3.9"
           - "3.12"
-    name: "poetry run pytest -m compile tests/integration_tests #${{ matrix.python-version }}"
+    name: "poetry run pytest tests/integration_tests #${{ matrix.python-version }}"
     steps:
       - uses: actions/checkout@v4
 
