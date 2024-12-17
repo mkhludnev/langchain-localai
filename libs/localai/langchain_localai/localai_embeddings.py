@@ -294,41 +294,45 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
         }
         return openai_args
 
-    def _embedding_func(self, text: str, *, engine: str) -> List[float]:
+    def _embedding_func(
+        self, text: str | list[str], *, engine: str
+    ) -> List[List[float]]:
         """Call out to LocalAI's embedding endpoint."""
         # handle large input text
         if self.model.endswith("001"):
             # See: https://github.com/openai/openai-python/issues/418#issuecomment-1525939500
             # replace newlines, which can negatively affect performance.
-            text = text.replace("\n", " ")
-        return (
-            embed_with_retry(
+            if isinstance(text, str):
+                text = text.replace("\n", " ")
+            else:
+                text = [t.replace("\n", " ") for t in text]
+        listofembdes = embed_with_retry(
+            self,
+            input=[text] if isinstance(text, str) else text,
+            **self._invocation_params,
+        ).data
+        return [d.embedding for d in listofembdes]
+
+    async def _aembedding_func(
+        self, text: str | List[str], *, engine: str
+    ) -> List[List[float]]:
+        """Call out to LocalAI's embedding endpoint."""
+        # handle large input text
+        if self.model.endswith("001"):
+            # See: https://github.com/openai/openai-python/issues/418#issuecomment-1525939500
+            # replace newlines, which can negatively affect performance.
+            if isinstance(text, str):
+                text = text.replace("\n", " ")
+            else:
+                text = [t.replace("\n", " ") for t in text]
+        listofembdes = (
+            await async_embed_with_retry(
                 self,
-                input=[text],
+                input=[text] if isinstance(text, str) else text,
                 **self._invocation_params,
             )
-            .data[0]
-            .embedding
-        )
-
-    async def _aembedding_func(self, text: str, *, engine: str) -> List[float]:
-        """Call out to LocalAI's embedding endpoint."""
-        # handle large input text
-        if self.model.endswith("001"):
-            # See: https://github.com/openai/openai-python/issues/418#issuecomment-1525939500
-            # replace newlines, which can negatively affect performance.
-            text = text.replace("\n", " ")
-        return (
-            (
-                await async_embed_with_retry(
-                    self,
-                    input=[text],
-                    **self._invocation_params,
-                )
-            )
-            .data[0]
-            .embedding
-        )
+        ).data
+        return [d.embedding for d in listofembdes]
 
     def embed_documents(
         self, texts: List[str], chunk_size: Optional[int] = 0
@@ -344,7 +348,7 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
             List of embeddings, one for each text.
         """
         # call _embedding_func for each text
-        return [self._embedding_func(text, engine=self.deployment) for text in texts]
+        return self._embedding_func(texts, engine=self.deployment)
 
     async def aembed_documents(
         self, texts: List[str], chunk_size: Optional[int] = 0
@@ -359,11 +363,7 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
         Returns:
             List of embeddings, one for each text.
         """
-        embeddings = []
-        for text in texts:
-            response = await self._aembedding_func(text, engine=self.deployment)
-            embeddings.append(response)
-        return embeddings
+        return await self._aembedding_func(texts, engine=self.deployment)
 
     def embed_query(self, text: str) -> List[float]:
         """Call out to LocalAI's embedding endpoint for embedding query text.
@@ -374,8 +374,7 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
         Returns:
             Embedding for the text.
         """
-        embedding = self._embedding_func(text, engine=self.deployment)
-        return embedding
+        return self._embedding_func([text], engine=self.deployment)[0]
 
     async def aembed_query(self, text: str) -> List[float]:
         """Call out to LocalAI's embedding endpoint async for embedding query text.
@@ -386,5 +385,5 @@ class LocalAIEmbeddings(BaseModel, Embeddings):
         Returns:
             Embedding for the text.
         """
-        embedding = await self._aembedding_func(text, engine=self.deployment)
-        return embedding
+        embeddings = await self._aembedding_func([text], engine=self.deployment)
+        return embeddings[0]
