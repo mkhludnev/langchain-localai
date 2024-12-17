@@ -77,7 +77,6 @@ def test_localai_embed_docs() -> None:
     assert docs1[1] == docs2[0]
 
 
-
 @pytest.mark.requires("openai")
 @pytest.mark.vcr
 async def test_localai_aembed_docs() -> None:
