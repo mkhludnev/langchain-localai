@@ -1,9 +1,13 @@
 ## langchain-localai
 
-This project provides Langchain [integration package](https://python.langchain.com/docs/contributing/how_to/integrations/) for [LocalAI](https://localai.io/features/embeddings/).
+This project provides Langchain [integration package](https://python.langchain.com/docs/contributing/how_to/integrations/) for [LocalAI /embeddings](https://localai.io/features/embeddings/).
 
-It's descendant of Langchain [community package](https://python.langchain.com/docs/integrations/text_embedding/localai/). 
-The main advantage is that it depends on OpenAI SDK v1.
+It's descendant of Langchain's [community package](https://python.langchain.com/docs/integrations/text_embedding/localai/). 
+
+### Features
+
+ - depends on OpenAI SDK v1
+ - `embed_documents` in one bulk request
 
 ### References
 
