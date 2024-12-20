@@ -22,7 +22,7 @@ disallow_untyped_defs = "True"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-langchain-core = ">=0.1.52,<0.4"
+langchain-core = ">=0.1.52"
 openai = ">=1.30.0,<2.0"
 
 [tool.ruff.lint]
