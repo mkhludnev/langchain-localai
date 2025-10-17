@@ -13,7 +13,7 @@ pip install -U langchain-localai
 `LocalAIEmbeddings` class exposes embeddings from LocalAI.
 
 ```python
-from libs.localai.langchain_localai import LocalAIEmbeddings
+from langchain_localai import LocalAIEmbeddings
 
 embeddings = LocalAIEmbeddings(
     openai_api_base="http://localhost:8080",
