@@ -36,11 +36,12 @@ addopts = "--strict-markers --strict-config --durations=5"
 markers = [
     "requires: mark tests as requiring a specific library",
     "compile: mark placeholder test used to compile integration tests without running them",
+    "vcr: mark test to use VCR.py for recording HTTP interactions",
 ]
 asyncio_mode = "auto"
 
 [tool.poetry.group.test]
-optional = true
+#optional = true
 
 [tool.poetry.group.codespell]
 optional = true
@@ -55,13 +56,13 @@ optional = true
 optional = true
 
 [tool.poetry.group.dev.dependencies]
+pytest = ">=8.0,<9.0"
+pytest-asyncio = ">=0.23.0,<2.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.4.3"
-pytest-asyncio = "^0.23.2"
-pytest-socket = "^0.7.0"
-pytest-watcher = "^0.3.4"
-langchain-tests = "^0.3.5"
+pytest = ">=8.0,<9.0"
+pytest-asyncio = ">=0.23.0,<2.0"
+#langchain-tests = "^0.3.5"
 
 [tool.poetry.group.codespell.dependencies]
 codespell = "^2.2.6"
