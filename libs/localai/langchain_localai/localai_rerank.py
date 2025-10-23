@@ -1,4 +1,4 @@
-# from __future__ import annotations
+from __future__ import annotations
 
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -7,46 +7,40 @@ import httpx
 from langchain_core.callbacks import Callbacks
 from langchain_core.documents import BaseDocumentCompressor, Document
 from langchain_core.utils import get_from_dict_or_env
-from pydantic import PrivateAttr, model_validator
+from pydantic import Field, PrivateAttr, model_validator
 
 
 class LocalAIRerank(BaseDocumentCompressor):
     """Document compressor that uses LocalAI Rerank API (supports sync and async)."""
 
+    model: str = Field(default="jina-reranker-v1-base-en")
+    top_n: Optional[int] = Field(default=3, ge=1)
+    openai_api_key: Optional[str] = Field(default=None)
+    openai_api_base: str = Field(default="")
+
+    # Private HTTP clients
     _sync_client: Optional[httpx.Client] = PrivateAttr(default=None)
     _async_client: Optional[httpx.AsyncClient] = PrivateAttr(default=None)
 
-    top_n: Optional[int] = 3
-    model: str = "jina-reranker-v1-base-en"
-    openai_api_key: Optional[str] = None
-    openai_api_base: str = ""  # guaranteed non-None via validator
+    model_config = {
+        "arbitrary_types_allowed": True,
+        "extra": "forbid",
+    }
 
-    # model_config = ConfigDict(
-    #     arbitrary_types_allowed=True,
-    #     extra="forbid",
-    # )
-    class Config:
-        arbitrary_types_allowed = True
-        extra = "forbid"
-
-    # causes hell knows TypeError: cannot pickle 'classmethod' object
-
-    # @model_validator(mode="before")
-    # @classmethod
-
-    # @pre_init
     @model_validator(mode="before")
-    def validate_environment(cls, values: Dict) -> Dict:
-        values["openai_api_key"] = get_from_dict_or_env(
-            values, "openai_api_key", "OPENAI_API_KEY"
-        )
-        values["openai_api_base"] = get_from_dict_or_env(
-            values, "openai_api_base", "OPENAI_API_BASE", default=""
-        )
-        return values
+    @classmethod
+    def validate_environment(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            data["openai_api_key"] = get_from_dict_or_env(
+                data, "openai_api_key", "OPENAI_API_KEY"
+            )
+            data["openai_api_base"] = get_from_dict_or_env(
+                data, "openai_api_base", "OPENAI_API_BASE", default=""
+            )
+        return data
 
     def _get_sync_client(self) -> httpx.Client:
-        if "_sync_client" not in vars(self):
+        if self._sync_client is None:
             headers = {"Content-Type": "application/json"}
             if self.openai_api_key:
                 headers["Authorization"] = f"Bearer {self.openai_api_key}"
@@ -54,7 +48,7 @@ class LocalAIRerank(BaseDocumentCompressor):
         return self._sync_client
 
     async def _get_async_client(self) -> httpx.AsyncClient:
-        if "_async_client" not in vars(self):
+        if self._async_client is None:
             headers = {"Content-Type": "application/json"}
             if self.openai_api_key:
                 headers["Authorization"] = f"Bearer {self.openai_api_key}"
@@ -66,17 +60,24 @@ class LocalAIRerank(BaseDocumentCompressor):
         documents: Sequence[Union[str, Document, dict]],
         query: str,
         model: Optional[str] = None,
-        top_n: Optional[int] = -1,
+        top_n: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         if not documents:
             return []
+
         docs = [
             doc.page_content if isinstance(doc, Document) else doc for doc in documents
         ]
-        model = model or self.model
-        top_n = top_n if (top_n is None or top_n > 0) else self.top_n
+        resolved_model = model or self.model
+        resolved_top_n = top_n if top_n is not None and top_n > 0 else self.top_n
 
-        data = {"query": query, "documents": docs, "model": model, "top_n": top_n}
+        data = {
+            "query": query,
+            "documents": docs,
+            "model": resolved_model,
+            "top_n": resolved_top_n,
+        }
+
         client = self._get_sync_client()
         url = f"{self.openai_api_base.rstrip('/')}/v1/rerank"
         response = client.post(url, json=data)
@@ -85,6 +86,7 @@ class LocalAIRerank(BaseDocumentCompressor):
 
         if "results" not in resp:
             raise RuntimeError(resp.get("detail", "Unknown error from rerank API"))
+
         return [
             {"index": r["index"], "relevance_score": r["relevance_score"]}
             for r in resp["results"]
@@ -95,17 +97,24 @@ class LocalAIRerank(BaseDocumentCompressor):
         documents: Sequence[Union[str, Document, dict]],
         query: str,
         model: Optional[str] = None,
-        top_n: Optional[int] = -1,
+        top_n: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         if not documents:
             return []
+
         docs = [
             doc.page_content if isinstance(doc, Document) else doc for doc in documents
         ]
-        model = model or self.model
-        top_n = top_n if (top_n is None or top_n > 0) else self.top_n
+        resolved_model = model or self.model
+        resolved_top_n = top_n if top_n is not None and top_n > 0 else self.top_n
 
-        data = {"query": query, "documents": docs, "model": model, "top_n": top_n}
+        data = {
+            "query": query,
+            "documents": docs,
+            "model": resolved_model,
+            "top_n": resolved_top_n,
+        }
+
         client = await self._get_async_client()
         url = f"{self.openai_api_base.rstrip('/')}/v1/rerank"
         response = await client.post(url, json=data)
@@ -114,12 +123,12 @@ class LocalAIRerank(BaseDocumentCompressor):
 
         if "results" not in resp:
             raise RuntimeError(resp.get("detail", "Unknown error from rerank API"))
+
         return [
             {"index": r["index"], "relevance_score": r["relevance_score"]}
             for r in resp["results"]
         ]
 
-    # === SYNC INTERFACE ===
     def compress_documents(
         self,
         documents: Sequence[Document],
@@ -129,7 +138,6 @@ class LocalAIRerank(BaseDocumentCompressor):
         results = self._rerank_sync(documents, query)
         return self._build_compressed_docs(documents, results)
 
-    # === ASYNC INTERFACE ===
     async def acompress_documents(
         self,
         documents: Sequence[Document],
@@ -144,22 +152,21 @@ class LocalAIRerank(BaseDocumentCompressor):
     ) -> List[Document]:
         compressed = []
         for res in results:
-            doc = documents[res["index"]]
-            doc_copy = Document(doc.page_content, metadata=deepcopy(doc.metadata))
-            doc_copy.metadata["relevance_score"] = res["relevance_score"]
-            compressed.append(doc_copy)
+            original_doc = documents[res["index"]]
+            new_doc = Document(
+                page_content=original_doc.page_content,
+                metadata=deepcopy(original_doc.metadata),
+            )
+            new_doc.metadata["relevance_score"] = res["relevance_score"]
+            compressed.append(new_doc)
         return compressed
 
-    # === Cleanup (optional but recommended) ===
     def close(self) -> None:
-        if "_sync_client" in vars(self):
+        if self._sync_client is not None:
             self._sync_client.close()
             self._sync_client = None
 
     async def aclose(self) -> None:
-        if "_async_client" in vars(self):
+        if self._async_client is not None:
             await self._async_client.aclose()
             self._async_client = None
-
-    def __del__(self) -> None:
-        self.close()
