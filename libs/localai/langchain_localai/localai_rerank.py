@@ -11,12 +11,17 @@ from pydantic import Field, PrivateAttr, model_validator
 
 
 class LocalAIRerank(BaseDocumentCompressor):
-    """Document compressor that uses LocalAI Rerank API (supports sync and async)."""
+    """Document compressor that uses LocalAI Rerank API
+    (supports sync and async calls)."""
 
     model: str = Field(default="jina-reranker-v1-base-en")
+    """ Model deployed in LocalAI instance."""
     top_n: Optional[int] = Field(default=3, ge=1)
     openai_api_key: Optional[str] = Field(default=None)
+    """ Optional Bearer Authorization key."""
     openai_api_base: str = Field(default="")
+    """ Just a LocalAI endpoint. While it has nothing with Open AI.
+     It just mimics similar arguments in LocalAIEmbeddings"""
 
     # Private HTTP clients
     _sync_client: Optional[httpx.Client] = PrivateAttr(default=None)
