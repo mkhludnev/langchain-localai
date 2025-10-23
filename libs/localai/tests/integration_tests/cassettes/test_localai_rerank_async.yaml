@@ -1,0 +1,46 @@
+interactions:
+- request:
+    body: '{"query":"foo","documents":["foo bar","moo foo","completely unrelated content"],"model":"bge-reranker-v2-m3","top_n":3}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate, zstd
+      authorization:
+      - Bearer foo
+      connection:
+      - keep-alive
+      content-length:
+      - '119'
+      content-type:
+      - application/json
+      host:
+      - foo.bar
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://foo.bar/v1/rerank
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAEA2zPwQ6CMAwG4FchPW8ENlDkVYwhY6vGOFYzisEQ3t3JwYPh1KRNv/5dYCCHHlro
+        bygjRhMeGOVLyUGDgGk0N4R2ASY2vmN6YBihbQQ8Iw1P/nXKVUDEcfKcxucF7sHhDG0pwJGdBgy8
+        KTinmk5SdiWCbcfjywSL3WgpplMqb/SpqfSxXsWPKXaZRGS9ibtMkZd1VdTqqP8otUvZ9IxHRv/O
+        phDRG0aXWQr8Db4XUx7yU1kVB1Wvl/UDAAD//wMAzHaVOkUBAAA=
+    headers:
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 23 Oct 2025 18:31:27 GMT
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+version: 1
