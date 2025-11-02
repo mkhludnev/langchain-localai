@@ -49,12 +49,17 @@ Teams deploying LocalAI locally or within private networks and users who require
 
 ### Changes
 
-#### 0.2
+#### 1.0.0
+- `python = ">=3.10,<4.0"`
+- `langchain-core = "^1.0.0"`
+- `openai = ">=1.109.1,<3.0.0"`
+
+#### 0.2.0
 - rerank support
 
 #### 0.1.2
-- langchain-core = "^0.3.15"
-- openai = ">=1.30.0,<2.0"
+- `langchain-core = "^0.3.15"`
+- `openai = ">=1.30.0,<2.0"`
 - embeddings
 
 ### Contributing
@@ -64,7 +69,7 @@ Please open issues with reproducible steps and metrics (latency, throughput) or 
 See LICENSE file in the repository.
 
 ### Contact
-Repository owner: @mkhludnev
+Repository owner: [@mkhludnev](https://github.com/mkhludnev)
 Open an issue or discussion for questions.
 
 ### References
