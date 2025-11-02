@@ -47,6 +47,16 @@ reranked_docs = reranker.compress_documents(documents=[
 ###  Who should use this
 Teams deploying LocalAI locally or within private networks and users who require reliable, performant embeddings and reranker (cross-encoder) integration with [LangChain](https://docs.langchain.com/oss/python/langchain/overview).
 
+### Changes
+
+#### 0.2
+- rerank support
+
+#### 0.1.2
+- langchain-core = "^0.3.15"
+- openai = ">=1.30.0,<2.0"
+- embeddings
+
 ### Contributing
 Please open issues with reproducible steps and metrics (latency, throughput) or submit pull requests to improve batching, resilience, or tests.
 
@@ -56,7 +66,6 @@ See LICENSE file in the repository.
 ### Contact
 Repository owner: @mkhludnev
 Open an issue or discussion for questions.
-
 
 ### References
 
